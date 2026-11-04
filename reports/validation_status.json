@@ -1,0 +1,12 @@
+{
+  "run_name": "stable_7000",
+  "training_steps": 7000,
+  "gaussians": 23350,
+  "heldout_mean_psnr_db": 23.925,
+  "heldout_mean_ssim": 0.7965,
+  "test_mean_psnr_db": 24.553,
+  "test_mean_ssim": 0.8121,
+  "viewer_note": "Scene was loaded into SuperSplat; softness and limited geometry remain",
+  "completed_15000_steps": false,
+  "test_scope": "Test frames withheld from 3DGS training and checkpoint selection, but not from SfM"
+}

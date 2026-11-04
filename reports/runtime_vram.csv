@@ -1,0 +1,10 @@
+stage,runtime_seconds,allocated_gpu_vram_gb,measurement_notes
+Extraction and filtering,3.679,0,CPU decode and filtering
+VGGT 32-frame benchmark,88.976,7.066,Includes loading; PyTorch allocated peak
+GLOMAP 32-frame benchmark,52.881,0,CPU SIFT/matching 0 GB; global mapping GPU peak unmeasured
+VGGT full chunk merge,124.163,6.873,Includes model loading; PyTorch allocated peak
+GLOMAP full reconstruction,1626.324,0,CPU SIFT/matching 0 GB; global mapping GPU peak unmeasured
+COLMAP image undistortion,5.051,0,CPU stage
+Gaussian training,184.431,0.144,PyTorch allocated peak; excludes JIT compilation
+Held-out evaluation,1.42,0.098,Unmeasured values left blank
+Gaussian PLY/SPLAT export,0.035,0,CPU model export
