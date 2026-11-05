@@ -69,6 +69,19 @@ def read_scene(dataset):
 def holdout_indices(records,stride):
     if stride<3:
         raise ValueError('Holdout stride must be >=3')
-    held = set(range(stride-1,len(records),stride))
-    train=[i for i in range(len(records)) if i not in held]
+
+    n = len(records)
+    if n < 3:
+        raise RuntimeError(
+            f'Need at least 3 registered images for training and validation; got {n}'
+        )
+
+    held = set(range(stride-1,n,stride))
+
+    # Small datasets may not reach the configured holdout stride.
+    # Reserve the final image for validation in that case.
+    if not held:
+        held = {n-1}
+
+    train = [i for i in range(n) if i not in held]
     return train, sorted(held)

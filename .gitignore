@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*secret*
+*credentials*
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Local runtime data and uploaded media
+backend/storage/
+storage/
+uploads/
+artifacts/
+
+# Generated worker bundle
+room3d_kaggle_worker_bundle.zip
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.vscode/
