@@ -23,19 +23,18 @@ JWT_SECRET = os.environ.get("ROOM3D_JWT_SECRET", "dev-secret-change-me-dev-secre
 ACCESS_TOKEN_MINUTES = _int("ROOM3D_ACCESS_TOKEN_MINUTES", 60 * 24)
 FILE_TOKEN_MINUTES = _int("ROOM3D_FILE_TOKEN_MINUTES", 120)
 
-# Shared secret between backend and the Kaggle worker. Person A's pipeline sends it
-# as "Authorization: Bearer <token>" (env PERSON_A_BACKEND_TOKEN) on progress events.
-WORKER_TOKEN = os.environ.get("ROOM3D_WORKER_TOKEN", "dev-worker-token")
+# GPU server (Kaggle notebook exposed through a Cloudflare tunnel). Can also be set from the UI (PUT /gpu/config).
+GPU_URL = os.environ.get("ROOM3D_GPU_URL", "").rstrip("/")
+GPU_TOKEN = os.environ.get("ROOM3D_GPU_TOKEN", "")
+FRONTEND_DIR = Path(os.environ.get("ROOM3D_FRONTEND_DIR", Path(__file__).resolve().parents[2] / "frontend"))
+UPLOAD_PART_MB = _int("ROOM3D_UPLOAD_PART_MB", 32)  # per request to the GPU server (Cloudflare free plan limit is 100 MB)
 
 MAX_VIDEO_BYTES = _int("ROOM3D_MAX_VIDEO_MB", 600) * 1024 * 1024
-MAX_PART_BYTES = _int("ROOM3D_MAX_PART_MB", 128) * 1024 * 1024
 MAX_EXTRACT_BYTES = _int("ROOM3D_MAX_EXTRACT_MB", 6144) * 1024 * 1024
 KEEP_DELIVERY_ZIP = _bool("ROOM3D_KEEP_DELIVERY_ZIP", False)
 
-# A running task with no heartbeat for this long is re-queued (or failed once
-# MAX_ATTEMPTS is used up). Must be well above the worker heartbeat interval (30 s).
-STALE_SECONDS = _int("ROOM3D_STALE_SECONDS", 600)
-MAX_ATTEMPTS = _int("ROOM3D_MAX_ATTEMPTS", 2)
+MAX_ATTEMPTS = _int("ROOM3D_MAX_ATTEMPTS", 2)  # a task whose GPU job is lost (Kaggle session died) is retried this often
+GPU_LOST_SECONDS = _int("ROOM3D_GPU_LOST_SECONDS", 600)  # running task, GPU server unreachable this long -> fail
 
 CORS_ORIGINS = [o.strip() for o in os.environ.get("ROOM3D_CORS_ORIGINS", "*").split(",") if o.strip()]
 
@@ -46,5 +45,3 @@ MIN_STEPS, MAX_STEPS = 1000, 30000
 def warn_insecure_defaults():
     if JWT_SECRET.startswith("dev-secret"):
         warnings.warn("ROOM3D_JWT_SECRET is the development default; set a real secret.", stacklevel=2)
-    if WORKER_TOKEN == "dev-worker-token":
-        warnings.warn("ROOM3D_WORKER_TOKEN is the development default; set a real token.", stacklevel=2)
