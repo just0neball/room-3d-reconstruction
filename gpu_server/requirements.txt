@@ -1,0 +1,17 @@
+# GPU server (Kaggle). torch / torchvision / CUDA come preinstalled on Kaggle images.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+pydantic>=2
+numpy
+opencv-python-headless
+pillow
+requests
+# real models (not needed with GPU_MOCK=1)
+transformers>=4.57        # SAM 2.1 / SAM 3 (Sam2Model, Sam2VideoModel, Sam3Tracker*)
+diffusers>=0.36           # FLUX.2 klein pipeline + PipelineQuantizationConfig (install from git if the class is missing)
+accelerate
+bitsandbytes>=0.45        # nf4 / int8 quantisation (works on T4, sm75)
+sentencepiece
+gsplat                    # 3DGS rasteriser (depth for lifting, fine-tune rebuild)
+scipy

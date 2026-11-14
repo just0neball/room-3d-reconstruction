@@ -89,11 +89,6 @@ def get_current_user(
     return user
 
 
-def require_worker(creds: HTTPAuthorizationCredentials | None = Depends(bearer)) -> None:
-    if creds is None or not secrets.compare_digest(creds.credentials, config.WORKER_TOKEN):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid worker token")
-
-
 def get_owned_project(db: Session, project_id: int, user: User) -> Project:
     project = db.get(Project, project_id)
     # 404 (not 403) so project ids of other users are not revealed

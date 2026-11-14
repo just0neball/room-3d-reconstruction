@@ -13,8 +13,10 @@ from sqlalchemy.orm import Session
 
 from .. import config, storage
 from ..db import get_db
-from ..models import Project, Task, User
+from ..models import Edit, Project, Task, User
 from ..schemas import ProjectCreate, ProjectOut, ReconstructIn, TaskOut, task_out
+from .. import geometry
+from ..services import dispatcher, edit_ops
 from ..security import (
     bearer,
     create_file_token,
@@ -147,9 +149,11 @@ def reconstruct(
         type="reconstruction",
         steps=body.steps,
         run_name=body.run_name or f"stable_{body.steps}",
+        params=json.dumps({"frame_fps": body.frame_fps}),
     )
     db.add(task)
     db.commit()
+    dispatcher.wake()
     return task_out(task)
 
 
@@ -178,6 +182,10 @@ def get_scene(project_id: int, user: User = Depends(get_current_user), db: Sessi
         "url_expires_minutes": config.FILE_TOKEN_MINUTES,
         "metadata": json.loads(project.scene_meta or "{}"),
         "run_name": project.scene_run_name,
+        "cameras_url": f"/projects/{project.id}/cameras",
+        "edits": [{"id": e.id, "name": e.name, "state": e.state,
+                   "splat_url": url(f"edits/{e.id}/exports/scene.splat") if e.state == "done" else None}
+                  for e in project.edits],
         # Week 2 contract: exact locations of frames, poses, intrinsics, splat
         "handoff": storage.handoff_index(project.id, project.scene_run_name or ""),
     }
@@ -205,3 +213,68 @@ def get_file(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "File not found")
     media_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
     return FileResponse(target, media_type=media_type, headers={"Cache-Control": "private, max-age=3600"})
+
+
+def _ready_project(project: Project):
+    if project.scene_path is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Scene is not ready yet")
+
+
+@router.get("/{project_id}/frames")
+def get_frames(project_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    project = get_owned_project(db, project_id, user)
+    _ready_project(project)
+    token = create_file_token(project.id)
+    cams = edit_ops.cameras(project.id)
+    fps = edit_ops.frame_fps(project.id)
+    return {
+        "fps": fps,
+        "count": len(cams),
+        "image_size": {"width": cams[0]["width"], "height": cams[0]["height"]},
+        "frames": [{
+            "index": c["index"], "name": c["name"], "seconds": round(c["index"] / fps, 2),
+            "url": f"/projects/{project.id}/files/{quote(edit_ops.FRAMES + '/' + c['name'])}?t={token}",
+            "thumb_url": f"/projects/{project.id}/thumb/{quote(c['name'])}?w=240&t={token}",
+        } for c in cams],
+    }
+
+
+@router.get("/{project_id}/thumb/{name}")
+def get_thumb(project_id: int, name: str, w: int = Query(240, ge=64, le=960), t: Optional[str] = Query(None),
+              creds: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)):
+    if t is not None:
+        if decode_token(t, "files").get("pid") != project_id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Token is for a different project")
+    else:
+        user = user_from_credentials(creds, db)
+        if user is None:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
+        get_owned_project(db, project_id, user)
+    target = storage.resolve_inside(project_id, f"{edit_ops.FRAMES}/{name}")
+    if target is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Frame not found")
+    out = edit_ops.thumb(target, w, storage.project_dir(project_id) / "_cache" / "thumbs")
+    return FileResponse(out, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
+
+
+@router.get("/{project_id}/cameras")
+def get_cameras(project_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    project = get_owned_project(db, project_id, user)
+    _ready_project(project)
+    cams = edit_ops.cameras(project.id)
+    return {
+        "image_size": {"width": cams[0]["width"], "height": cams[0]["height"]},
+        "up": [0, -1, 0],  # COLMAP world: +Y points down
+        "cameras": [{k: c[k] for k in ("index", "name", "position", "rotation_c2w", "fx", "fy", "cx", "cy")} for c in cams],
+    }
+
+
+@router.get("/{project_id}/thumb-edit/{edit_id}/{seed}")
+def get_candidate_thumb(project_id: int, edit_id: int, seed: int, t: str = Query(...)):
+    if decode_token(t, "files").get("pid") != project_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Token is for a different project")
+    target = storage.resolve_inside(project_id, f"edits/{edit_id}/candidates/candidate_{seed}.png")
+    if target is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Candidate not found")
+    out = edit_ops.thumb(target, 480, storage.project_dir(project_id) / "_cache" / f"cand-{edit_id}")
+    return FileResponse(out, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
