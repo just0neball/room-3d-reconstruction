@@ -20,7 +20,7 @@ from ..models import Edit, Project, Task, User, utcnow
 from ..schemas import TaskOut, task_out
 from ..security import create_file_token, get_current_user, get_owned_project
 from ..services import dispatcher, edit_ops
-from ..services.edit_ops import edit_dir, jl, stem
+from ..services.edit_ops import edit_dir, included_frames, jl, stem
 from ..services.gpu_client import GpuClient, GpuError, GpuUnreachable
 
 router = APIRouter(tags=["edits"])
@@ -109,7 +109,7 @@ def edit_out(db: Session, e: Edit) -> dict:
         "ref_mask_url": _url(pid, f"{rel}/masks/{stem(e.ref_frame)}.png", token, d / "masks" / f"{stem(e.ref_frame)}.png") if e.ref_frame else None,
         "ref_overlay_url": _url(pid, f"{rel}/overlays/{stem(e.ref_frame)}.jpg", token, d / "overlays" / f"{stem(e.ref_frame)}.jpg") if e.ref_frame else None,
         "tracking": tracking, "candidates": cands, "chosen_seed": e.chosen_seed,
-        "reference_url": _url(pid, f"{rel}/reference.png", token, d / "reference.png"),
+        "edit_frame": edit_ops.edit_frame(e) if e.ref_frame else None, "reference_url": _url(pid, f"{rel}/reference.png", token, d / "reference.png"),
         "edit_progress": {"done": done, "total": len(included)},
         "result": result, "settings": {**DEFAULT_SETTINGS, **jl(e.settings, {})}, "metrics": jl(e.metrics, {}),
         "active_task": task_out(active).model_dump(mode="json") if active else None,
@@ -329,10 +329,15 @@ def edit_reference(edit_id: int, body: RefBody | None = None, user: User = Depen
         raise HTTPException(422, "Type what the object should become (the edit prompt)")
     if not e.ref_frame:
         raise HTTPException(status.HTTP_409_CONFLICT, "Pick the object first")
-    if body.frame and body.frame != e.ref_frame:
-        raise HTTPException(422, "The reference edit is made on the reference frame; pick another reference frame in step 1")
     if not e.tracking:
         raise HTTPException(status.HTTP_409_CONFLICT, "Track the object first")
+    if body.frame:
+        ok = any(f["name"] == body.frame for f in included_frames(e)) and (edit_dir(e.project_id, e.id) / "masks" / f"{stem(body.frame)}.png").is_file()
+        if not ok:
+            raise HTTPException(422, "That frame is not part of the edit set (needs an included frame with a mask)")
+        st = jl(e.settings, {})
+        st["edit_frame"] = body.frame
+        e.settings = json.dumps(st)
     return task_out(_queue(db, e, "edit_reference", {"seeds": body.seeds or jl(e.settings, {}).get("seeds", 4)}))
 
 

@@ -216,14 +216,15 @@ def prepare(db, task: Task, gpu: GpuClient):
         return "track", {"dataset": key, "method": p["method"], "ref_frame": edit.ref_frame, "ref_points": jl(edit.points, []),
                          "frames": p.get("frames", []), "user_points": jl(edit.user_points, {})}, {"bundle": uid}
     if task.type == "edit_reference":
-        uid = gpu.upload(_zip_bytes(_masks_entries(edit, [edit.ref_frame])))
-        return "edit_reference", {"dataset": key, "frame": p.get("frame") or edit.ref_frame, "prompt": edit.prompt, "seeds": p.get("seeds", st.get("seeds", 4)),
+        ef = edit_frame(edit)
+        uid = gpu.upload(_zip_bytes(_masks_entries(edit, [ef])))
+        return "edit_reference", {"dataset": key, "frame": ef, "prompt": edit.prompt, "seeds": p.get("seeds", st.get("seeds", 4)),
                                   "seed_offset": edit.seed_offset, "quant": st.get("quant", "nf4")}, {"bundle": uid}
     if task.type == "edit_rest":
         frames = [f["name"] for f in included_frames(edit)]
         entries = _masks_entries(edit, frames) + [("reference.png", edit_dir(edit.project_id, edit.id) / "reference.png")]
         uid = gpu.upload(_zip_bytes(entries))
-        return "edit_rest", {"dataset": key, "frames": frames, "reference_frame": edit.ref_frame, "prompt": edit.prompt, "seed": edit.chosen_seed or 0,
+        return "edit_rest", {"dataset": key, "frames": frames, "reference_frame": edit_frame(edit), "prompt": edit.prompt, "seed": edit.chosen_seed or 0,
                              "quant": st.get("quant", "nf4")}, {"bundle": uid}
     if task.type == "rebuild":
         d = edit_dir(edit.project_id, edit.id)
@@ -232,6 +233,14 @@ def prepare(db, task: Task, gpu: GpuClient):
         uid = gpu.upload(_zip_bytes(entries))
         return "rebuild", {"dataset": key, "mode": p.get("mode", st.get("rebuild_mode", "finetune")), "steps": p.get("steps", st.get("rebuild_steps", 3000))}, {"bundle": uid}
     raise ValueError(task.type)
+
+
+def edit_frame(edit: Edit) -> str:
+    """Frame on which the first (reference) edit is made: the user's choice if it is still an included frame with a mask, else the clicked frame."""
+    want = jl(edit.settings, {}).get("edit_frame")
+    if want and any(f["name"] == want for f in included_frames(edit)) and (edit_dir(edit.project_id, edit.id) / "masks" / f"{stem(want)}.png").is_file():
+        return want
+    return edit.ref_frame
 
 
 def on_partial(db, task: Task, gpu: GpuClient, job):

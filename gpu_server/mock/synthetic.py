@@ -5,6 +5,7 @@ import zipfile
 from pathlib import Path
 
 import cv2
+import os
 import numpy as np
 
 from ..geometry import Camera, project, rot_to_quat
@@ -44,7 +45,7 @@ def build_scene(seed=7, density=1.0):
         p[:, 1] = rng.uniform(-1.3, 1.3, n)
         p[:, axis] = val
         P.append(p)
-        S.append(np.full(len(p), 0.07))
+        S.append(np.full(len(p), 0.07 / np.sqrt(density)))
         base = np.array(color, float)
         col = base[None] + rng.normal(0, 5, (n, 3))
         if axis == 1 and val > 0:  # checker floor so the floor is not one flat colour
@@ -57,7 +58,7 @@ def build_scene(seed=7, density=1.0):
         p, c = _box(rng, (cx, 1.3 - size[1] / 2, cz), size, color, int(14000 * density))
         P.append(p)
         C.append(c)
-        S.append(np.full(len(p), 0.03))
+        S.append(np.full(len(p), 0.03 / np.sqrt(density)))
     return np.concatenate(P), np.concatenate(C).astype(np.uint8), np.concatenate(S)
 
 
@@ -141,7 +142,7 @@ def write_splat(points, colors, path, scale=0.03):
 def build_project(out_dir, frames=48, progress=None):
     """Create <out>/3dgs_dataset/{images,sparse_txt}, <out>/exports/mock/scene.splat; returns object ground truth."""
     out = Path(out_dir)
-    pts, col, scl = build_scene()  # sparse set -> becomes the splat
+    pts, col, scl = build_scene(density=float(os.environ.get('GPU_MOCK_SPLAT_DENSITY', '0.3')))  # light set -> becomes the splat (keeps software WebGL usable)
     hi_pts, hi_col, _ = build_scene(seed=11, density=6)  # dense set -> only used to render solid-looking frames
     cams = make_cameras(frames)
     img_dir = out / "3dgs_dataset" / "images"

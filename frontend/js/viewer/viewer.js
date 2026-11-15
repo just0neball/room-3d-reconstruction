@@ -26,7 +26,7 @@ export class SplatViewer extends EventTarget {
     container.append(this.dom);
 
     this.versions = new Map(); // key -> { group, status }
-    this.activeKey = null; this.mode = 'orbit'; this.pickMode = false; this.sceneScale = 1;
+    this.activeKey = null; this.mode = 'orbit'; this.pickMode = false; this.paused = false; this.sceneScale = 1;
 
     this.orbit = new OrbitControls(this.camera, this.dom);
     this.orbit.enableDamping = true; this.orbit.dampingFactor = 0.08; this.orbit.screenSpacePanning = true;
@@ -41,6 +41,7 @@ export class SplatViewer extends EventTarget {
     this._loop = () => {
       if (this._dead) return;
       this._raf = requestAnimationFrame(this._loop);
+      if (this.paused) { this._clock.getDelta(); return; } // editor open: don't burn the GPU on a hidden scene
       const dt = Math.min(this._clock.getDelta(), 0.1);
       if (this.mode === 'fly') this.fly.update(dt); else this.orbit.update();
       this.renderer.render(this.scene, this.camera);

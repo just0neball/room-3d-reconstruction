@@ -197,10 +197,12 @@ input[type=checkbox], input[type=radio] { accent-color: var(--mask); }
 .wiz-host { position: absolute; inset: 66px 14px 14px 14px; z-index: 12; display: flex; justify-content: flex-end; pointer-events: none; }
 .wiz-host.collapsed { opacity: 0; visibility: hidden; }
 .wiz { pointer-events: auto; width: min(1060px, 100%); height: 100%; display: flex; flex-direction: column; background: rgba(17, 22, 31, .97); border: 1px solid var(--line-2); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
-.wiz-head { flex: none; display: flex; align-items: center; gap: 18px; padding: 12px 14px 12px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.wiz-head { flex: none; display: flex; align-items: center; gap: 18px; padding: 12px 14px 12px 20px; border-bottom: 1px solid var(--line); flex-wrap: nowrap; container-type: inline-size; }
+.wiz-head > .btn { flex: none; }
 .wiz-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .wiz-title h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
-.wiz-steps { list-style: none; margin: 0 auto 0 0; padding: 0; display: flex; gap: 2px; flex-wrap: wrap; }
+.wiz-steps { list-style: none; margin: 0 auto 0 0; padding: 0; display: flex; gap: 2px; flex-wrap: nowrap; min-width: 0; }
+@container (max-width: 1060px) { .wiz-steps .step-label { display: none; } .wiz-steps li.active .step-label { display: inline; } }
 .wiz-steps button { display: inline-flex; align-items: center; gap: 7px; background: none; border: 0; padding: 6px 10px; border-radius: 8px; color: var(--faint); font: inherit; font-size: .86rem; font-weight: 560; cursor: pointer; }
 .wiz-steps button:disabled { cursor: default; }
 .wiz-steps button:not(:disabled):hover { background: var(--ink-2); color: var(--text); }

@@ -113,9 +113,9 @@ export async function mount(root, params) {
   // ---------- 3D pick hook for the wizard ----------
   function pick3d() {
     return new Promise((resolve) => {
-      wizHost.classList.add('collapsed'); viewer.setMode('orbit'); viewer.setPickMode(true);
+      wizHost.classList.add('collapsed'); viewer.paused = false; viewer.setMode('orbit'); viewer.setPickMode(true);
       clear(pickBar); pickBar.classList.remove('hidden');
-      const finish = (p) => { viewer.setPickMode(false); viewer.removeEventListener('pick', onPick); window.removeEventListener('keydown', onKey); pickBar.classList.add('hidden'); wizHost.classList.remove('collapsed'); resolve(p); };
+      const finish = (p) => { viewer.setPickMode(false); viewer.removeEventListener('pick', onPick); window.removeEventListener('keydown', onKey); pickBar.classList.add('hidden'); wizHost.classList.remove('collapsed'); viewer.paused = !!wizard; resolve(p); };
       const onPick = (ev) => { const { point } = ev.detail; if (!point) { toast('Nothing was hit there. Click directly on the object.', 'info'); return; } finish(point); };
       const onKey = (ev) => { if (ev.key === 'Escape') finish(null); };
       pickBar.append(icon('target', 18), h('span', null, 'Click the object you want to edit'), button('Cancel', { kind: 'sm', onClick: () => finish(null) }));
@@ -135,13 +135,13 @@ export async function mount(root, params) {
       wizard = new Wizard({ pid, edit, framesInfo, hooks: { pick3d, close: () => navigate(wizard?.edit.state === 'done' ? `/p/${pid}/view/${editId}` : `/p/${pid}/view`), viewResult: (e) => viewResult(e) },
         onEditChange: (e) => { const i = edits.findIndex((x) => x.id === e.id); if (i >= 0) edits[i] = e; else edits.unshift(e); } });
       clear(wizHost); wizHost.append(wizard.el);
-      editBtn.classList.add('hidden');
+      editBtn.classList.add('hidden'); viewer.paused = true;
     } catch (e) {
       clear(wizHost); wizHost.append(h('div', { class: 'empty' }, icon('warn', 26), h('h2', null, 'Could not open this edit'), h('p', null, errMsg(e)), button('Close', { onClick: () => navigate(`/p/${pid}/view`) })));
     }
   }
   function closeWizard(hide = true) {
-    wizard?.destroy(); wizard = null;
+    wizard?.destroy(); wizard = null; if (viewer) viewer.paused = false;
     if (hide) { wizHost.classList.add('hidden'); clear(wizHost); }
     editBtn?.classList.remove('hidden');
   }
