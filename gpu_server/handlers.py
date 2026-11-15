@@ -23,6 +23,8 @@ def stem(name):
 
 
 def read_mask(path):
+    if not Path(path).is_file():
+        return None
     m = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
     return None if m is None else m > 127
 

@@ -1,3 +1,8 @@
+// DOM append() turns null/false into the text "null"/"false"; components return null for "nothing to show",
+// so make append skip them. Imported by every page, so this applies app-wide.
+const _nativeAppend = Element.prototype.append;
+Element.prototype.append = function (...kids) { return _nativeAppend.apply(this, kids.filter((k) => k != null && k !== false)); };
+
 // DOM helpers, icons, toasts, dialogs and shared formatting.
 export function h(tag, props, ...kids) {
   const el = document.createElement(tag);

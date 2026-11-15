@@ -61,7 +61,7 @@ State machine (`edit.state`):
 | POST | `/edits/{id}/segment` | **sync**. `{frame, points:[{x,y,label:1|0}], box?:[x0,y0,x1,y1], set_reference?:true}` -> `{mask_url, overlay_url, area, score, frame}`. Click on a frame; positive/negative points refine; with `set_reference` (default) this frame becomes the reference mask and state -> `masked`. With `set_reference:false` it edits that single frame's mask (manual fix, `source:"manual"`) |
 | POST | `/edits/{id}/track` | `{method:"auto"|"video"|"lift3d"|"neighbor"|"manual", frames?:[names]}` -> 202 Task `track`. `auto` = lift3d with video-propagation cross-check (server decides); `manual` = SAM on exactly `frames` (the user-marked fallback), each prompted with projected points when available |
 | PATCH | `/edits/{id}/frames` | `{include?:[names], exclude?:[names]}` toggles frames in/out of the edit set without running models (user removes wrong frames). Frames included that have no mask need `track` with `method:"manual"` |
-| POST | `/edits/{id}/edit/reference` | `{prompt?, seeds?:1-6, frame?}` -> 202 Task `edit_reference`; then `state:reference_ready` and `edit.candidates` filled |
+| POST | `/edits/{id}/edit/reference` | `{prompt?, seeds?:1-6, frame?}` (`frame` = any included frame with a mask; default = the clicked frame) -> 202 Task `edit_reference`; then `state:reference_ready` and `edit.candidates` filled |
 | POST | `/edits/{id}/edit/accept` | `{seed}` picks the reference edit (state stays `reference_ready`, `chosen_seed` set) |
 | POST | `/edits/{id}/edit/run` | `{}` -> 202 Task `edit_rest` (needs `chosen_seed`); progress `detail` = "frame x of N" |
 | POST | `/edits/{id}/rebuild` | `{mode?:"finetune"|"scratch", steps?}` -> 202 Task `rebuild` |
@@ -75,7 +75,7 @@ ref_frame|null, points:[{x,y,label}], box|null, ref_mask_url|null, ref_overlay_u
 tracking: null | {method, message, included_count, total, frames:[
   {index, name, seconds, included, source:"reference"|"auto"|"manual"|"none", score|null, area (0-1 fraction of image)|null,
    thumb_url, mask_url|null, overlay_url|null, edited_url|null}]},
-candidates:[{seed, url, thumb_url}], chosen_seed|null, reference_url|null,
+candidates:[{seed, url, thumb_url}], chosen_seed|null, reference_url|null, edit_frame|null (frame the first edit is made on),
 edit_progress:{done,total},
 result: null | {splat_url, ply_url, mode, steps, build_seconds, original_splat_url},
 settings:{seeds, quant:"nf4"|"int8"|"bf16", rebuild_mode, rebuild_steps},
