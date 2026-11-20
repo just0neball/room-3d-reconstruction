@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from typing import Optional
 
@@ -36,6 +37,7 @@ class ReconstructIn(BaseModel):
     steps: int = Field(config.DEFAULT_STEPS, ge=config.MIN_STEPS, le=config.MAX_STEPS)
     # used in file paths and CLI args by the pipeline, so keep it strictly safe
     run_name: Optional[str] = Field(None, pattern=r"^[A-Za-z0-9_-]{1,40}$")
+    frame_fps: int = Field(1, ge=1, le=2)  # frames per second used for reconstruction (poses + splat + edit frames)
 
 
 class ProgressIn(BaseModel):
@@ -53,12 +55,14 @@ class ProgressIn(BaseModel):
 class TaskOut(BaseModel):
     id: int
     project_id: int
+    edit_id: Optional[int] = None
     type: str
     status: str
     stage: str
     stage_group: str
     stage_label: str
     progress: int
+    detail: Optional[str] = None
     error: Optional[str]
     steps: int
     run_name: str
@@ -66,18 +70,22 @@ class TaskOut(BaseModel):
     created_at: datetime
     started_at: Optional[datetime]
     finished_at: Optional[datetime]
+    metrics: Optional[dict] = None
 
 
 def task_out(task: Task) -> TaskOut:
+    group = group_for(task.stage) if task.type == "reconstruction" else task.type
     return TaskOut(
         id=task.id,
         project_id=task.project_id,
+        edit_id=task.edit_id,
         type=task.type,
         status=task.status,
         stage=task.stage,
-        stage_group=group_for(task.stage),
+        stage_group=group,
         stage_label=label_for(task.stage),
         progress=task.progress,
+        detail=task.detail,
         error=task.error,
         steps=task.steps,
         run_name=task.run_name,
@@ -85,6 +93,7 @@ def task_out(task: Task) -> TaskOut:
         created_at=task.created_at,
         started_at=task.started_at,
         finished_at=task.finished_at,
+        metrics=json.loads(task.metrics) if task.metrics else None,
     )
 
 

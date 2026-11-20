@@ -3,3 +3,7 @@ uvicorn[standard]>=0.30
 sqlalchemy>=2.0
 pyjwt>=2.8
 python-multipart>=0.0.9
+requests>=2.31
+numpy
+opencv-python-headless
+pillow

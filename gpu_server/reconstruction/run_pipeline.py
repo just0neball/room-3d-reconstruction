@@ -14,6 +14,8 @@ def main():
     parser.add_argument('--run_name',default='stable_7000')
     parser.add_argument('--backend_url',default=None)
     parser.add_argument('--task_id',default=None)
+    parser.add_argument('--fps',type=int,default=2,help='frame extraction rate (1-4)')
+    parser.add_argument('--full_fps',type=int,default=1,help='rate of frames used for reconstruction (divides --fps)')
     parser.add_argument('--resume',action='store_true')
     parser.add_argument('--matching',choices=['sequential','both','exhaustive'],default=None)
     parser.add_argument('--colmap_bin',default='/kaggle/working/reconstruction_tools/colmap_env/bin/colmap')
@@ -25,7 +27,7 @@ def main():
     if args.task_id:
         common+=['--task_id',args.task_id]
     commands={
-        'extract':['extract.py','--video',args.video] if args.video else None,
+        'extract':['extract.py','--video',args.video,'--fps',str(args.fps),'--full_fps',str(args.full_fps)] if args.video else None,
         'install_colmap':['install_colmap.py'],
         'vggt_benchmark':['vggt_compare.py','--mode','benchmark'],
         'vggt_full':['vggt_compare.py','--mode','full'],
