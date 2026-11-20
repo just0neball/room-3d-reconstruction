@@ -59,11 +59,3 @@ Edits are listed per project (edit history); the original scene is never modifie
 * **Nothing outside the mask changes:** the diffusion result is alpha-composited back with weight exactly 0 outside the mask (feathered edge only inside it); every edited frame logs `outside_mask_max_diff` (tests assert `0`).
 * **No pose re-estimation:** the rebuild reuses the Week-1 COLMAP poses; only pixels change.
 * Tests: `cd backend && pytest` (spawns a real mock GPU server and drives the whole flow through the API), `PYTHONPATH=. pytest gpu_server/tests`.
-
-## Honest status
-
-Verified here end to end only in **mock mode** (API + browser UI, Chromium/Playwright). The real-model adapters —
-SAM 2.1/3 (`vision/segmenters.py`), FLUX.2 klein with bitsandbytes (`editing/editors.py`), gsplat fine-tune/scratch rebuild
-(`rebuild/rebuild.py`) — are written against the documented `transformers`/`diffusers`/`gsplat` APIs but have **not been run
-on a GPU yet**. Run the notebook's smoke-test cells and `python -m gpu_server.editing.benchmark` on Kaggle, then fill the measured
-numbers into `docs/WEEK2_REPORT.md`. See that report's "Known risks" for what is most likely to need a tweak.
