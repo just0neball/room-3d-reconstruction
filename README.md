@@ -9,9 +9,6 @@ Upload a room video, browse the reconstructed Gaussian splat in the browser, the
                                   serves the frontend and all files                                 SAM 2/3 · FLUX.2 klein · gsplat · reconstruction
 ```
 
-The website never runs a model. It uploads inputs to the GPU server, starts a job, polls it, and downloads the result
-(push model). If the GPU server is offline a task simply waits ("Waiting for GPU server") and starts when it is back.
-
 ## Repository layout
 
 | Folder | What is in it |
@@ -24,7 +21,6 @@ The website never runs a model. It uploads inputs to the GPU server, starts a jo
 
 ## Run it
 
-**1. Try everything without a GPU (mock mode, ~1 minute)**
 
 ```bash
 pip install -r backend/requirements.txt -r gpu_server/requirements.txt   # mock mode needs no torch
